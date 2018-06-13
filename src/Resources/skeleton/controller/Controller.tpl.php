@@ -13,9 +13,7 @@ class <?= $class_name; ?> extends Controller
     public function index()
     {
 <?php if ($twig_installed) { ?>
-        return $this->render('<?= $template_name ?>', [
-            'controller_name' => '<?= $class_name ?>',
-        ]);
+        return $this->render('<?= $template_name ?>');
 <?php } else { ?>
         return $this->json([
             'message' => 'Welcome to your new controller!',

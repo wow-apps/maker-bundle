@@ -168,6 +168,11 @@ class FileManager
         return $this->autoloaderUtil->isNamespaceConfiguredToAutoload($namespace);
     }
 
+    public function getRootDirectory(): string
+    {
+        return $this->rootDirectory;
+    }
+
     /**
      * Resolve '../' in paths (like real_path), but for non-existent files.
      *
