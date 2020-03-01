@@ -11,15 +11,16 @@
 
 namespace Symfony\Bundle\MakerBundle\Doctrine;
 
+use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\Common\Persistence\Mapping\AbstractClassMetadataFactory;
+use Doctrine\Common\Persistence\Mapping\ClassMetadata;
+use Doctrine\Common\Persistence\Mapping\Driver\AnnotationDriver;
 use Doctrine\Common\Persistence\Mapping\Driver\MappingDriver;
 use Doctrine\Common\Persistence\Mapping\Driver\MappingDriverChain;
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Common\Persistence\Mapping\ClassMetadata;
-use Doctrine\ORM\Mapping\MappingException as ORMMappingException;
 use Doctrine\Common\Persistence\Mapping\MappingException as PersistenceMappingException;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\MappingException as ORMMappingException;
 use Doctrine\ORM\Tools\DisconnectedClassMetadataFactory;
-use Symfony\Bridge\Doctrine\ManagerRegistry;
 use Symfony\Bundle\MakerBundle\Util\ClassNameDetails;
 
 /**
@@ -69,8 +70,6 @@ final class DoctrineHelper
     }
 
     /**
-     * @param string $className
-     *
      * @return MappingDriver|null
      *
      * @throws \Exception
@@ -117,9 +116,6 @@ final class DoctrineHelper
     }
 
     /**
-     * @param string|null $classOrNamespace
-     * @param bool        $disconnected
-     *
      * @return array|ClassMetadata
      */
     public function getMetadata(string $classOrNamespace = null, bool $disconnected = false)
@@ -145,6 +141,19 @@ final class DoctrineHelper
                 foreach ($loaded as $m) {
                     $cmf->setMetadataFor($m->getName(), $m);
                 }
+
+                // Invalidating the cached AnnotationDriver::$classNames to find new Entity classes
+                $metadataDriver = $em->getConfiguration()->getMetadataDriverImpl();
+                if ($metadataDriver instanceof MappingDriverChain) {
+                    foreach ($metadataDriver->getDrivers() as $driver) {
+                        if ($driver instanceof AnnotationDriver) {
+                            $classNames = (new \ReflectionObject($driver))->getProperty('classNames');
+                            $classNames->setAccessible(true);
+                            $classNames->setValue($driver, null);
+                            $classNames->setAccessible(false);
+                        }
+                    }
+                }
             }
 
             foreach ($cmf->getAllMetadata() as $m) {
@@ -166,8 +175,6 @@ final class DoctrineHelper
     }
 
     /**
-     * @param string $entityClassName
-     *
      * @return EntityDetails|null
      */
     public function createDoctrineDetails(string $entityClassName)

@@ -1,3 +1,61 @@
+1.13
+====
+
+* [make:functional-test] Use Panther when available - #417
+  thanks to @adrienlucas
+
+* Allow rehashing passwords when possible and needed - #389
+  thanks to @nicolas-grekas
+
+1.12
+====
+
+* Use `[make:*-test]` Use the new WebTestAssertionsTrait methods in the generated
+  functional tests - #381 thanks to @adrienlucas
+
+* Add a agree terms checkbox to `make:registration-form` - #394
+  thanks to @ismail1432
+
+* Template generation respects `twig.default_path` - #346
+  thanks to @LeJeanbono
+
+* [Serializer] Normalizer now implements CacheableSupportsMethodInterface
+  with condition - #399 thanks to @jojotjebaby
+
+* Deprecate Argon2i encoder used in `make:user` and use
+  `auto` instead - #398 thanks to @nicolas-grekas
+
+* [make:auth] Added logout support and help for logged in user -
+  in #406 thanks to @St0iK
+
+* Use new event class names instead of strings in `make:event-subscriber` -
+  in #403 thanks to @jojotjebaby
+
+1.11
+====
+
+* Add `make:registration-form` command - #333 thanks to @weaverryan
+
+1.10
+====
+
+* Add `make:serializer:normalizer` command - #298 thanks
+    to @lyrixx
+
+* Add a `--no-template` option to `make:controller` to skip
+    generating a template - #280 thanks to @welcoMattic
+
+* Add support for rendering additional date types in make:crud
+    - #241 thanks to @sadikoff
+
+* Better errors when trying to use reserved words for classes
+    - #306 thanks to @SerkanYildiz
+
+1.9
+===
+
+* Allow make:form to work with non-entities - #301 thanks to @ckrack
+
 1.8
 ===
 

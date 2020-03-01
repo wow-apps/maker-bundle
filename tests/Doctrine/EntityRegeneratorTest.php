@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of the Symfony MakerBundle package.
+ *
+ * (c) Fabien Potencier <fabien@symfony.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Symfony\Bundle\MakerBundle\Tests\Doctrine;
 
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
@@ -33,22 +42,23 @@ class EntityRegeneratorTest extends TestCase
         $this->doTestRegeneration(
             __DIR__.'/fixtures/source_project',
             $kernel,
-            'Symfony\Bundle\MakerBundle\Tests\Doctrine\fixtures\source_project\src\Entity',
+            'Symfony\Bundle\MakerBundle\Tests\tmp\current_project\src\Entity',
             $expectedDirName,
-            $overwrite
+            $overwrite,
+            'current_project'
         );
     }
 
     public function getRegenerateEntitiesTests()
     {
-        yield 'regnerate_no_overwrite' => [
+        yield 'regenerate_no_overwrite' => [
             'expected_no_overwrite',
-            false
+            false,
         ];
 
         yield 'regenerate_overwrite' => [
             'expected_overwrite',
-            true
+            true,
         ];
     }
 
@@ -58,16 +68,17 @@ class EntityRegeneratorTest extends TestCase
         $this->doTestRegeneration(
             __DIR__.'/fixtures/xml_source_project',
             $kernel,
-            'Symfony\Bundle\MakerBundle\Tests\tmp\current_project\src\Entity',
+            'Symfony\Bundle\MakerBundle\Tests\tmp\current_project_xml\src\Entity',
             'expected_xml',
-            false
+            false,
+            'current_project_xml'
         );
     }
 
-    private function doTestRegeneration(string $sourceDir, Kernel $kernel, string $namespace, string $expectedDirName, bool $overwrite)
+    private function doTestRegeneration(string $sourceDir, Kernel $kernel, string $namespace, string $expectedDirName, bool $overwrite, string $targetDirName)
     {
         $fs = new Filesystem();
-        $tmpDir = __DIR__.'/../tmp/current_project';
+        $tmpDir = __DIR__.'/../tmp/'.$targetDirName;
         $fs->remove($tmpDir);
 
         // if traits (Timestampable, Teamable) gets copied into new project, tests will fail because of double exclusion
@@ -79,8 +90,8 @@ class EntityRegeneratorTest extends TestCase
         $autoloaderUtil = $this->createMock(AutoloaderUtil::class);
         $autoloaderUtil->expects($this->any())
             ->method('getPathForFutureClass')
-            ->willReturnCallback(function($className) use ($tmpDir) {
-                $shortClassName = str_replace('Symfony\Bundle\MakerBundle\Tests\tmp\current_project\src\\', '', $className);
+            ->willReturnCallback(function ($className) use ($tmpDir, $targetDirName) {
+                $shortClassName = str_replace('Symfony\Bundle\MakerBundle\Tests\tmp\\'.$targetDirName.'\src\\', '', $className);
 
                 // strip the App\, change \ to / and add .php
                 return $tmpDir.'/src/'.str_replace('\\', '/', $shortClassName).'.php';
@@ -101,7 +112,6 @@ class EntityRegeneratorTest extends TestCase
         $finder = (new Finder())->in($expectedDir)->files();
 
         foreach ($finder as $file) {
-
             /** @var SplFileInfo $file */
             $expectedContents = file_get_contents($file->getPathname());
 
@@ -118,6 +128,7 @@ class EntityRegeneratorTest extends TestCase
     {
         $directoryIterator = new \RecursiveDirectoryIterator($sourceDir, \FilesystemIterator::SKIP_DOTS);
         $filter = new AllButTraitsIterator($directoryIterator);
+
         return new \RecursiveIteratorIterator($filter, \RecursiveIteratorIterator::SELF_FIRST);
     }
 }
@@ -128,10 +139,10 @@ class TestEntityRegeneratorKernel extends Kernel
 
     public function registerBundles()
     {
-        return array(
+        return [
             new FrameworkBundle(),
             new DoctrineBundle(),
-        );
+        ];
     }
 
     protected function configureRoutes(RouteCollectionBuilder $routes)
@@ -151,13 +162,18 @@ class TestEntityRegeneratorKernel extends Kernel
                     'EntityRegenerator' => [
                         'is_bundle' => false,
                         'type' => 'annotation',
-                        'dir' => '%kernel.root_dir%/src/Entity',
-                        'prefix' => 'Symfony\Bundle\MakerBundle\Tests\Doctrine\fixtures\source_project\src\Entity',
+                        'dir' => '%kernel.project_dir%/src/Entity',
+                        'prefix' => 'Symfony\Bundle\MakerBundle\Tests\tmp\current_project\src\Entity',
                         'alias' => 'EntityRegeneratorApp',
-                    ]
-                ]
-            ]
+                    ],
+                ],
+            ],
         ]);
+    }
+
+    public function getProjectDir()
+    {
+        return $this->getRootDir();
     }
 
     public function getRootDir()
@@ -172,10 +188,10 @@ class TestXmlEntityRegeneratorKernel extends Kernel
 
     public function registerBundles()
     {
-        return array(
+        return [
             new FrameworkBundle(),
             new DoctrineBundle(),
-        );
+        ];
     }
 
     protected function configureRoutes(RouteCollectionBuilder $routes)
@@ -196,24 +212,30 @@ class TestXmlEntityRegeneratorKernel extends Kernel
                     'EntityRegenerator' => [
                         'is_bundle' => false,
                         'type' => 'xml',
-                        'dir' => '%kernel.root_dir%/config/doctrine',
-                        'prefix' => 'Symfony\Bundle\MakerBundle\Tests\tmp\current_project\src\Entity',
+                        'dir' => '%kernel.project_dir%/config/doctrine',
+                        'prefix' => 'Symfony\Bundle\MakerBundle\Tests\tmp\current_project_xml\src\Entity',
                         'alias' => 'EntityRegeneratorApp',
-                    ]
-                ]
-            ]
+                    ],
+                ],
+            ],
         ]);
+    }
+
+    public function getProjectDir()
+    {
+        return $this->getRootDir();
     }
 
     public function getRootDir()
     {
-        return __DIR__.'/../tmp/current_project';
+        return __DIR__.'/../tmp/current_project_xml';
     }
 }
 
 class AllButTraitsIterator extends \RecursiveFilterIterator
 {
-    public function accept() {
-        return !in_array($this->current()->getFilename(), ['TeamTrait.php', 'TimestampableTrait.php']);
+    public function accept()
+    {
+        return !\in_array($this->current()->getFilename(), []);
     }
 }

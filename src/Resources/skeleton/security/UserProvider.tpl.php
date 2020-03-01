@@ -4,10 +4,11 @@ namespace <?= $namespace; ?>;
 
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\Exception\UsernameNotFoundException;
+<?= ($password_upgrader = interface_exists('Symfony\Component\Security\Core\User\PasswordUpgraderInterface')) ? "use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;\n" : '' ?>
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
 
-class <?= $class_name ?> implements UserProviderInterface
+class <?= $class_name ?> implements UserProviderInterface<?= $password_upgrader ? ", PasswordUpgraderInterface\n" : "\n" ?>
 {
     /**
      * Symfony calls this method if you use features like switch_user
@@ -17,6 +18,8 @@ class <?= $class_name ?> implements UserProviderInterface
      * this method.
      *
      * @return UserInterface
+     *
+     * @throws UsernameNotFoundException if the user is not found
      */
     public function loadUserByUsername($username)
     {
@@ -46,8 +49,6 @@ class <?= $class_name ?> implements UserProviderInterface
             throw new UnsupportedUserException(sprintf('Invalid user class "%s".', get_class($user)));
         }
 
-        /* @var <?= $user_short_name ?> $user */
-
         // Return a User object after making sure its data is "fresh".
         // Or throw a UsernameNotFoundException if the user no longer exists.
         throw new \Exception('TODO: fill in refreshUser() inside '.__FILE__);
@@ -60,4 +61,16 @@ class <?= $class_name ?> implements UserProviderInterface
     {
         return <?= $user_short_name ?>::class === $class;
     }
+<?php if ($password_upgrader): ?>
+
+    /**
+     * Upgrades the encoded password of a user, typically for using a better hash algorithm.
+     */
+    public function upgradePassword(UserInterface $user, string $newEncodedPassword): void
+    {
+        // TODO: when encoded passwords are in use, this method should:
+        // 1. persist the new password in the user storage
+        // 2. update the $user object with $user->setPassword($newEncodedPassword);
+    }
+<?php endif ?>
 }

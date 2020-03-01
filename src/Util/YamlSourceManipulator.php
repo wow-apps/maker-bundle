@@ -153,7 +153,7 @@ class YamlSourceManipulator
             $this->log('START key', true);
 
             // 1) was this key removed from the new data?
-            if (!array_key_exists($key, $newData)) {
+            if (!\array_key_exists($key, $newData)) {
                 $this->log('Removing key');
                 $this->removeKeyFromYaml($key, $currentData[$key]);
 
@@ -217,7 +217,7 @@ class YamlSourceManipulator
             }
 
             // 3b) value DID change
-            $this->log('updating value');
+            $this->log(sprintf('updating value to {%s}', \is_array($newVal) ? '<array>' : $newVal));
             $this->changeValueInYaml($newVal);
         }
 
@@ -461,11 +461,29 @@ class YamlSourceManipulator
             // empty space between key & value
             $newYamlValue = ' '.$newYamlValue;
         }
-        $newContents = substr($this->contents, 0, $this->currentPosition)
-            .$newYamlValue
-            .substr($this->contents, $endValuePosition);
 
         $newPosition = $this->currentPosition + \strlen($newYamlValue);
+        $isNextContentComment = $this->isPreviousLineComment($newPosition);
+        if ($isNextContentComment) {
+            ++$newPosition;
+        }
+
+        $newContents = substr($this->contents, 0, $this->currentPosition)
+            .$newYamlValue
+            /*
+             * If the next line is a comment, this means we probably had
+             * a structure that looks like this:
+             *     access_control:
+             *         # - { path: ^/admin, roles: ROLE_ADMIN }
+             *
+             * In this odd case, we need to know that the next line
+             * is a comment, so we can add an extra line break.
+             * Otherwise, the result is something like:
+             *     access_control:
+             *         - { path: /foo, roles: ROLE_USER }        # - { path: ^/admin, roles: ROLE_ADMIN }
+             */
+            .($isNextContentComment ? "\n" : '')
+            .substr($this->contents, $endValuePosition);
 
         $newData = $this->currentData;
         $newData = $this->setValueAtCurrentPath($value, $newData);
@@ -682,7 +700,7 @@ class YamlSourceManipulator
         $depth = $limitLevels;
         $path = \array_slice($this->currentPath, 0, \count($this->currentPath) - $limitLevels);
         foreach ($path as $key) {
-            if (!array_key_exists($key, $dataRef)) {
+            if (!\array_key_exists($key, $dataRef)) {
                 throw new \LogicException(sprintf('Could not find the key "%s" from the current path "%s" in data "%s"', $key, implode(', ', $path), var_export($data, true)));
             }
 
@@ -731,7 +749,7 @@ class YamlSourceManipulator
         $data = $this->currentData;
         $path = \array_slice($this->currentPath, 0, \count($this->currentPath) - $limitLevels);
         foreach ($path as $key) {
-            if (!array_key_exists($key, $data)) {
+            if (!\array_key_exists($key, $data)) {
                 throw new \LogicException(sprintf('Could not find the key "%s" from the current path "%s" in data "%s"', $key, implode(', ', $path), var_export($this->currentData, true)));
             }
 
@@ -760,10 +778,16 @@ class YamlSourceManipulator
             } elseif (null === $value) {
                 $pattern = '(~|NULL|null|\n)';
             } else {
-                $pattern = sprintf('\'?"?%s\'?"?', preg_quote($value));
+                $pattern = sprintf('\'?"?%s\'?"?', preg_quote($value, '#'));
             }
 
             $offset = null === $offset ? $this->currentPosition : $offset;
+
+            // a value like "foo:" can simply end a file
+            // this means the value is null
+            if ($offset === \strlen($this->contents)) {
+                return $offset;
+            }
 
             preg_match(sprintf('#%s#', $pattern), $this->contents, $matches, PREG_OFFSET_CAPTURE, $offset);
             if (empty($matches)) {
@@ -904,8 +928,6 @@ class YamlSourceManipulator
 
     /**
      * Advance until you find *one* of the characters in $chars.
-     *
-     * @param array $chars
      */
     private function findPositionOfNextCharacter(array $chars)
     {

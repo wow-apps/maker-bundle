@@ -1,6 +1,6 @@
 <?php
 
-namespace Symfony\Bundle\MakerBundle\Tests\Doctrine\fixtures\source_project\src\Entity;
+namespace Symfony\Bundle\MakerBundle\Tests\tmp\current_project\src\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -54,8 +54,8 @@ class User
         $this->userProfile = $userProfile;
 
         // set (or unset) the owning side of the relation if necessary
-        $newUser = $userProfile === null ? null : $this;
-        if ($newUser !== $userProfile->getUser()) {
+        $newUser = null === $userProfile ? null : $this;
+        if ($userProfile->getUser() !== $newUser) {
             $userProfile->setUser($newUser);
         }
 

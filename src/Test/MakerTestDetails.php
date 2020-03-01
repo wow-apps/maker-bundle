@@ -47,9 +47,6 @@ final class MakerTestDetails
     private $guardAuthenticators = [];
 
     /**
-     * @param MakerInterface $maker
-     * @param array          $inputs
-     *
      * @return static
      */
     public static function createTest(MakerInterface $maker, array $inputs)
@@ -135,11 +132,6 @@ final class MakerTestDetails
         // currently, we need to replace this in *both* files so we can also
         // run bin/console commands
         $this
-            ->addReplacement(
-                'phpunit.xml.dist',
-                'mysql://db_user:db_password@127.0.0.1:3306/db_name',
-                getenv('TEST_DATABASE_DSN')
-            )
             ->addReplacement(
                 '.env',
                 'mysql://db_user:db_password@127.0.0.1:3306/db_name',

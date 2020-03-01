@@ -1,10 +1,19 @@
 <?php
 
+/*
+ * This file is part of the Symfony MakerBundle package.
+ *
+ * (c) Fabien Potencier <fabien@symfony.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Symfony\Bundle\MakerBundle\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Symfony\Bundle\MakerBundle\Validator;
 use Symfony\Bundle\MakerBundle\Exception\RuntimeCommandException;
+use Symfony\Bundle\MakerBundle\Validator;
 
 class ValidatorTest extends TestCase
 {
@@ -48,5 +57,25 @@ class ValidatorTest extends TestCase
         $this->expectExceptionMessage('Invalid scale "31".');
 
         Validator::validateScale(31);
+    }
+
+    public function testValidateClassName()
+    {
+        $this->assertSame('\App\Service\Foo', Validator::validateClassName('\App\Service\Foo'));
+        $this->assertSame('Foo', Validator::validateClassName('Foo'));
+    }
+
+    public function testInvalidClassName()
+    {
+        $this->expectException(RuntimeCommandException::class);
+        $this->expectExceptionMessage('"Class" is a reserved keyword and thus cannot be used as class name in PHP.');
+        Validator::validateClassName('App\Entity\Class');
+    }
+
+    public function testInvalidEncodingInClassName()
+    {
+        $this->expectException(RuntimeCommandException::class);
+        $this->expectExceptionMessage(sprintf('"%sController" is not a UTF-8-encoded string.', \chr(0xA6)));
+        Validator::validateClassName(mb_convert_encoding('ŚController', 'ISO-8859-2', 'UTF-8'));
     }
 }
